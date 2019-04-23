@@ -49,7 +49,7 @@ begin
     @(posedge clk) begin
         write <= 1'b1;
         idata <= data;
-        clear_flag <= 1'b1;
+        clear_flag = 1'b1;
     end
 
     @(posedge clk) begin
@@ -69,25 +69,25 @@ begin
         data <= odata;
     end
 
-    @(posedge clk) read = 1'b0;
+    @(posedge clk) read <= 1'b0;
 end
 endtask
 
 task en_dequeue(
-    input           [7:0]   wdata,
-    output  reg     [7:0]   rdata
+    input           [7:0]   write_data,
+    output  reg     [7:0]   read_data
 );
 begin
     @(posedge clk) begin
-        read = 1'b1;
-        write = 1'b1;
-        idata = wdata;
+        read <= 1'b1;
+        write <= 1'b1;
+        idata <= write_data;
     end
 
     @(posedge clk) begin
-        rdata = odata;
-        read = 1'b0;
-        write = 1'b0;
+        read_data = odata;
+        read <= 1'b0;
+        write <= 1'b0;
     end
 end
 endtask
@@ -98,7 +98,6 @@ begin
     @(posedge clk) clear_flag <= 1'b0;
 end
 endtask
-
 
 task fifo_normal_test;
 begin
@@ -159,6 +158,66 @@ begin
 end
 endtask
 
+task fifo_reg_test;
+begin
+    //Init
+    regmode = 1;
+    read = 0;
+    write = 0;
+    clk = 0;
+    reset_n = 0;
+    i = 0;
+    scratch = 0;
+    wdata = 0;
+    rdata = 0;
+
+    //ASSD Reset
+    @(posedge clk) reset_n = 1'b1;
+
+    `assert( full, 1'b0 );
+    `assert( empty, 1'b1 );
+    `assert( oeflag, 1'b0 );
+
+    enqueue( 8'haa );
+    #0.1
+    `assert( full, 1'b1 );
+    `assert( empty, 1'b0 );
+    `assert( oeflag, 1'b0 );
+
+    dequeue( scratch );
+    #0.1
+    `assert( scratch, 8'haa );
+    `assert( full, 1'b0 );
+    `assert( empty, 1'b1 );
+    `assert( oeflag, 1'b0 );
+
+    enqueue( 8'hbb );
+    #0.1
+    `assert( full, 1'b1 );
+    `assert( empty, 1'b0 );
+    `assert( oeflag, 1'b0 );
+
+    enqueue( 8'hcc );
+    #0.1
+    `assert( full, 1'b1 );
+    `assert( empty, 1'b0 );
+    `assert( oeflag, 1'b1 );
+
+    dequeue( scratch );
+    #0.1
+    `assert( scratch, 8'hcc );
+    `assert( full, 1'b0 );
+    `assert( empty, 1'b1 );
+    `assert( oeflag, 1'b1 );
+
+    clear_oe();
+    #0.1
+    `assert( full, 1'b0 );
+    `assert( empty, 1'b1 );
+    `assert( oeflag, 1'b0 );
+end
+endtask
+
 //==VCD
 initial
 begin
@@ -171,7 +230,10 @@ always #2 clk = ~clk;
 
 initial
 begin
+    $display( "-- Start FIFO mode Test --" );
     fifo_normal_test();
+    $display( "-- Start REG mode Test --" );
+    fifo_reg_test();
     #20 $finish;
 end
 

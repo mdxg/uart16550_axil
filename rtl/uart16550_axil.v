@@ -7,7 +7,7 @@ The modules are listed in order they appear
 ******************************************************************************/
 
 /******************************************************************************
-uart1655_axil_tickgen
+uart16550_axil_tickgen
 
 #Description
 The tickgen module generates the timing reference for the transmitter.
@@ -24,7 +24,7 @@ high for one cycle of the clk signal.
 + reset_n      bool         -- system reset
 ******************************************************************************/
 
-module uart1655_axil_tickgen (
+module uart16550_axil_tickgen (
     input   wire    [15:0]     presc,
     output  wire               tick,
     input   wire               clk,
@@ -55,7 +55,7 @@ uart1655_axil_fifo
 #Port List
 ******************************************************************************/
 
-module uart1655_axil_fifo(
+module uart16550_axil_fifo(
     input   wire            regmode,
     input   wire    [7:0]   idata,
     input   wire            write,
@@ -114,7 +114,7 @@ end
 
 always @ (posedge clk)
 begin
-    if( valid_write ) begin
+    if( valid_write || regmode ) begin
         mem[wptr] <= idata;
     end
 end
@@ -163,10 +163,13 @@ end
 
 //==Static assignements
 assign elems = elems_r;
-assign empty = (elems_r == 0);
-assign full = (elems_r == 16);
+assign empty = regmode ? !reg_full : (elems_r == 0);
+assign full = regmode ? reg_full : (elems_r == 16);
 assign valid_read = (read & !empty);
 assign valid_write = (write & !full);
 assign odata = mem[rptr];
 
+endmodule
+
+module uart16550_xmit();
 endmodule
